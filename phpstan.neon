@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # max is 10 today; pinned so a new level 11 cannot fail the build without a change here
+    level: 10
+    # column names in strings too: where('stauts', ...) passes level max without it
+    checkModelProperties: true
+    # no tests/: PHPStan types Pest's $this as TestCall, not the TestCase the closure is bound to
+    paths:
+        - app/
+        - config/
+        - database/
