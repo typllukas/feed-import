@@ -1,0 +1,112 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: feed_import_test
+          MYSQL_USER: feed
+          MYSQL_PASSWORD: feed
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      kafka:
+        image: apache/kafka:4.1.0
+        env:
+          KAFKA_NODE_ID: 1
+          KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+        ports:
+          - 9092:9092
+        options: >-
+          --health-cmd "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, rdkafka-6.0.5
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+
+      - name: Databases and users
+        run: docker exec -i ${{ job.services.mysql.id }} mysql -uroot -proot < docker/mysql/init.sql
+
+      - name: Kafka topics
+        run: docker exec -i ${{ job.services.kafka.id }} sh -s < docker/kafka/create-topics.sh
+
+      - name: Coding standard
+        run: vendor/bin/pint --test
+
+      - name: Static analysis
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
+      - name: Tests
+        run: vendor/bin/pest
+        env:
+          DB_HOST: 127.0.0.1
+          KAFKA_BROKERS: localhost:9092
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build the production images
+        run: |
+          docker build --file docker/php/Dockerfile --target production --tag feed-import:ci .
+          docker build --file docker/php/Dockerfile --target web --tag feed-import-web:ci .
+
+      - name: Check php-fpm, OPcache and the Kafka extension
+        run: |
+          docker run --rm --entrypoint php-fpm feed-import:ci -t
+          docker run --rm --entrypoint php feed-import:ci -r 'exit(ini_get("opcache.validate_timestamps") === "0" && extension_loaded("rdkafka") ? 0 : 1);'
+
+      - name: Serve /up through both
+        run: |
+          docker network create feed-import
+          docker run --detach --name php --network feed-import --env APP_KEY="base64:$(openssl rand -base64 32)" feed-import:ci
+          docker run --detach --name web --network feed-import --publish 8080:80 feed-import-web:ci
+          for attempt in $(seq 1 20); do curl --fail --silent --show-error http://localhost:8080/up > /dev/null && exit 0; sleep 1; done
+          docker logs php
+          docker logs web
+          exit 1
