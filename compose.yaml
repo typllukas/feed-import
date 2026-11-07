@@ -64,7 +64,7 @@ services:
             - '127.0.0.1:${FORWARD_DB_PORT:-3311}:3306'
         volumes:
             - mysql-data:/var/lib/mysql
-            # the test database; the image only creates MYSQL_DATABASE
+            # the test database and the consumer's databases and user; the image only creates MYSQL_DATABASE
             - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
         healthcheck:
             test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-proot']

@@ -53,6 +53,21 @@ return [
             ]) : [],
         ],
 
+        // the consumer's own database and user, so the topic is all it shares with the importer
+        'price_history' => [
+            'driver' => 'mysql',
+            'host' => env('PRICE_HISTORY_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('PRICE_HISTORY_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('PRICE_HISTORY_DB_DATABASE', 'price_history'),
+            'username' => env('PRICE_HISTORY_DB_USERNAME', 'price_history'),
+            'password' => env('PRICE_HISTORY_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
 
     ],
 
