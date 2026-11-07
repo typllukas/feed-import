@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Jobs\ImportFeed;
 use App\Jobs\PublishProductUpdates;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
@@ -42,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Queue::route(ImportFeed::class, queue: 'feeds');
         Queue::route(PublishProductUpdates::class, queue: 'publishing');
 
         // lazy loading, unfillable and missing attributes throw outside production
