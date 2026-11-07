@@ -27,3 +27,31 @@ COPY --from=composer:2.9 /usr/bin/composer /usr/bin/composer
 
 # compose mounts the code
 FROM tools AS dev
+
+FROM tools AS production-build
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction --no-progress
+COPY . .
+# storage/ is in .dockerignore; config:cache reads the environment, so it runs at container start
+RUN mkdir -p storage/app/private storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
+    && composer dump-autoload --no-dev --classmap-authoritative --no-interaction \
+    && php artisan route:cache && php artisan event:cache && php artisan view:cache
+
+# php-fpm and both queue workers run this image
+FROM base AS production
+# expose_php is On even in php.ini-production
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && printf 'opcache.validate_timestamps = 0\nexpose_php = Off\n' > /usr/local/etc/php/conf.d/production.ini
+ENV LOG_CHANNEL=stderr
+COPY docker/php/production-entrypoint.sh /usr/local/bin/production-entrypoint
+COPY --from=production-build /app /app
+# group 0: OpenShift runs the image as a random UID in that group
+RUN chown -R app:0 storage bootstrap/cache && chmod -R g+w storage bootstrap/cache
+USER app
+ENTRYPOINT ["production-entrypoint"]
+CMD ["php-fpm"]
+
+# default.conf passes PHP to php:9000, the fpm service must be named php
+FROM nginx:1.28-alpine AS web
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=production-build /app/public /app/public

@@ -1,0 +1,16 @@
+*
+!app
+!artisan
+!bootstrap
+!composer.json
+!composer.lock
+!config
+!database
+!docker/nginx
+!docker/php
+!public
+!resources
+!routes
+# discovered from the dev packages; the build discovers the production ones
+bootstrap/cache/*.php
+public/storage
