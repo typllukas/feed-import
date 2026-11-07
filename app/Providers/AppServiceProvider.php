@@ -13,6 +13,8 @@ use Illuminate\Support\ServiceProvider;
 use Jobcloud\Kafka\Callback\KafkaErrorCallback;
 use Jobcloud\Kafka\Callback\KafkaProducerDeliveryReportCallback;
 use Jobcloud\Kafka\Conf\KafkaConfiguration;
+use Jobcloud\Kafka\Consumer\KafkaConsumerBuilder;
+use Jobcloud\Kafka\Consumer\KafkaConsumerBuilderInterface;
 use Jobcloud\Kafka\Message\Encoder\NullEncoder;
 use Jobcloud\Kafka\Producer\KafkaProducer;
 use Jobcloud\Kafka\Producer\KafkaProducerInterface;
@@ -38,6 +40,14 @@ class AppServiceProvider extends ServiceProvider
 
                 return new KafkaProducer(new RdKafkaProducer($configuration), $configuration, new NullEncoder);
             },
+        );
+
+        $this->app->bind(
+            KafkaConsumerBuilderInterface::class,
+            fn (): KafkaConsumerBuilderInterface => KafkaConsumerBuilder::create()
+                ->withAdditionalBroker(Config::string('feed.kafka_brokers'))
+                ->withConsumerGroup(Config::string('feed.kafka_consumer_group'))
+                ->withSubscription(Config::string('feed.kafka_topic')),
         );
     }
 
