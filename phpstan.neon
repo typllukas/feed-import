@@ -11,3 +11,4 @@ parameters:
         - app/
         - config/
         - database/
+        - routes/
