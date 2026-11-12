@@ -1,0 +1,31 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "types:check": "vue-tsc --noEmit",
+        "lint": "eslint . --max-warnings 0",
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "@testing-library/jest-dom": "^7.0.1",
+        "@testing-library/user-event": "^14.6.9",
+        "@testing-library/vue": "^8.1.0",
+        "@vitejs/plugin-vue": "^6.0.10",
+        "@vue/eslint-config-typescript": "^14.9.0",
+        "eslint": "^10.14.0",
+        "eslint-plugin-vue": "^10.12.1",
+        "jsdom": "^31.0.0",
+        "laravel-vite-plugin": "^3.2.1",
+        "msw": "^3.0.5",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.72.2",
+        "vite": "^8.3.8",
+        "vitest": "^5.1.0",
+        "vue-tsc": "^3.3.14"
+    },
+    "dependencies": {
+        "vue": "^3.5.45",
+        "zod": "^4.6.7"
+    }
+}
