@@ -66,6 +66,17 @@ jobs:
       - name: Prepare environment
         run: cp .env.example .env && php artisan key:generate
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26'
+          cache: npm
+
+      - name: JavaScript packages
+        run: npm ci
+
+      - name: Type check, lint and component tests
+        run: npm run types:check && npm run lint && npm test
+
       - name: Databases and users
         run: docker exec -i ${{ job.services.mysql.id }} mysql -uroot -proot < docker/mysql/init.sql
 
@@ -110,3 +121,9 @@ jobs:
           docker logs php
           docker logs web
           exit 1
+
+      - name: The built assets are in both images
+        run: |
+          docker run --rm --entrypoint test feed-import:ci -f public/build/manifest.json
+          asset=$(docker run --rm --entrypoint sh feed-import:ci -c "grep -o 'assets/app-[^\"]*\.js' public/build/manifest.json | head -n 1")
+          curl --fail --silent --show-error --output /dev/null "http://localhost:8080/build/$asset"
