@@ -7,6 +7,8 @@ namespace App\Models;
 use App\Rules\FeedHeader;
 use Database\Factories\RejectedRowFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -47,6 +49,15 @@ class RejectedRow extends Model
 
             return implode(';', $fields);
         });
+    }
+
+    /**
+     * @param  Builder<RejectedRow>  $query
+     */
+    #[Scope]
+    protected function inLineOrder(Builder $query): void
+    {
+        $query->orderBy('line_number');
     }
 
     /**

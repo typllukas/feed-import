@@ -17,7 +17,7 @@ final class FeedImportPageController extends Controller
         // not $errors, Blade shares the validation MessageBag under that name in every view
         return view('feed-imports.show', [
             'feedImport' => $feedImport->load('partner'),
-            'rejectedRows' => $feedImport->rejectedRows()->orderBy('line_number')->simplePaginate(25),
+            'rejectedRows' => $feedImport->rejectedRows()->inLineOrder()->simplePaginate(25),
         ]);
     }
 }

@@ -16,6 +16,6 @@ final class RejectedRowController extends Controller
 {
     public function index(FeedImport $feedImport): AnonymousResourceCollection
     {
-        return RejectedRowResource::collection($feedImport->rejectedRows()->orderBy('line_number')->paginate());
+        return RejectedRowResource::collection($feedImport->rejectedRows()->inLineOrder()->paginate());
     }
 }
