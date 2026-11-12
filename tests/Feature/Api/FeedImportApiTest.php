@@ -108,5 +108,6 @@ it('lists only the rejected rows of the import in the url, by line number', func
         ->assertOk()
         ->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.line_number', 4)
-        ->assertJsonPath('data.0.row.sku', 'ACM-004');
+        ->assertJsonPath('data.0.row.sku', 'ACM-004')
+        ->assertJsonPath('data.0.feed_line', 'ACM-004;;;;');
 });

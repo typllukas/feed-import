@@ -14,6 +14,13 @@ abstract class TestCase extends BaseTestCase
     /** @var list<string|null> */
     protected array $connectionsToTransact = [null, 'price_history'];
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     /**
      * migrate:fresh wipes only the default connection, and the price history migrations would find their tables.
      */

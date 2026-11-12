@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\FeedImport;
 use App\Models\Partner;
 use App\Models\Product;
-use App\Models\RejectedRow;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 
@@ -43,20 +42,25 @@ it('shows partners with product counts and the five most recent imports of each'
     }
 });
 
-it('shows one import with its rejected rows', function (): void {
+it('renders one import with the props its result component reads, varying on Accept', function (): void {
     $feedImport = FeedImport::factory()
         ->for(Partner::factory()->create(['name' => 'Acme Tools']))
-        ->has(RejectedRow::factory()->state([
-            'line_number' => 7,
-            'message' => 'The price field must be at least 0.',
-            'row' => ['sku' => 'ACM-007', 'name' => 'Wrench set', 'price' => '-12.90', 'currency' => 'CZK', 'stock' => '4'],
-        ]))
-        ->create();
+        ->create(['failure_reason' => 'The "acme" feed is missing.']);
 
-    $this->actingAs(User::factory()->create())
+    $pageHtml = $this->actingAs(User::factory()->create())
         ->get(route('feed-imports.show', $feedImport))
         ->assertOk()
+        ->assertHeader('Vary', 'Accept')
         ->assertSee('Acme Tools')
-        ->assertSee($feedImport->status->value)
-        ->assertSeeInOrder(['<td>7</td>', 'The price field must be at least 0.', '-12.90'], false);
+        ->getContent();
+    expect($pageHtml)->toBeString()
+        ->and(preg_match('/<div data-feed-import-result data-props="([^"]*)">/', $pageHtml, $propsMatch))->toBe(1);
+    $mountProps = json_decode(html_entity_decode($propsMatch[1]), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($mountProps)->toMatchArray([
+        'feedImportUrl' => route('feed-imports.show', $feedImport),
+        'rejectedRowsUrl' => route('feed-imports.rejected-rows.index', $feedImport),
+    ])
+        ->and($mountProps['initialFeedImport'])->toHaveKeys(['status', 'total_row_count', 'imported_row_count', 'rejected_row_count', 'started_at', 'finished_at', 'failure_reason'])
+        ->and($mountProps['initialFeedImport']['failure_reason'])->toBe('The "acme" feed is missing.');
 });
