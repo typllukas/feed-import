@@ -8,10 +8,10 @@ bad row is set aside without stopping the import. 100 000 products import in 26 
 prices changed sends 1 000 messages, not 100 000.
 
 A queued job validates the upload and upserts changed products in chunks, a separate worker publishes them, and a
-consumer keeps a price history in its own database under its own MySQL user, sharing only the topic. Two Blade
-pages show partners, imports and rejected rows.
+consumer keeps a price history in its own database under its own MySQL user, sharing only the topic. Blade pages
+show partners and imports, upload a feed and show an import finishing, its rejected rows included.
 
-![Partners with their recent imports, one of them superseded by a newer feed and one failed; one import opened with three rejected rows](docs/screenshot.png)
+![Partners with their recent imports, one of them superseded by a newer feed and one failed, and a link to upload a feed in each row; one import opened with three rejected rows](docs/screenshot.png)
 
 **Example: a partner changes one price.** `make demo-change` re-imports the sample feed (117 valid products) with
 ACM-001 cut from 12.90 to 9.90 CZK. The terminal output below shows the three steps:
@@ -78,7 +78,7 @@ Needs git, Docker Compose and GNU Make.
 git clone https://github.com/typllukas/feed-import.git && cd feed-import && make setup
 ```
 
-Setup takes about two and a half minutes from a fresh clone plus the base image downloads; `make help` lists the
+Setup takes a little under three minutes from a fresh clone plus the base image downloads; `make help` lists the
 other targets. GNU Make is optional: every target is a few `docker compose` commands, which can be run by hand from
 the [`Makefile`](Makefile).
 
@@ -90,12 +90,14 @@ In this order; each step shows one part of the design:
   (`database/seeders/feeds/acme.csv`) with its bad rows set aside, publishes every product and consumes them into
   the price history.
 - **The pages** at <http://localhost:8084>, login prefilled: **what an operator sees.** Each partner's recent
-  imports with their status and counts, a failed one with its reason; open an import for its rejected rows, each
-  with the line number, the reason and the original line.
+  imports with their status and counts, a failed one with its reason; "Upload feed" in a partner's row comes with
+  the sample feed already chosen and opens the new import, which finishes on the page without a reload, its
+  rejected rows each with the line number, the reason and the original line.
 - `make demo-change`, after it: **only changes go out.** The same feed again with one price changed gives one
   message and one new history row (the example above).
 - `make consume-group`: **Kafka splits the work.** Two consumers in one group share the three partitions; when the
-  first stops after 10 s, the second takes all three over.
+  first stops after 10 s, the second takes all three over. The earlier steps have read the topic already, so both
+  report 0 messages; what moves is the partitions.
 - `make scale`: **the measurements below.** Imports 100 000 generated products, then the same feed with 1 % of
   prices changed, and prints how long each job took.
 
@@ -180,19 +182,28 @@ in both directions.
   with a higher version the consumer accepts.
 - **Broker unreachable**: not a failure of the import, see the outbox.
 
+## A Vue component in a Blade page
+
+The pages stay Blade. Only the part that changes while you watch, an import finishing and its rejected rows, is a
+Vue component, [`FeedImportResult`](resources/js/components/FeedImportResult.vue). This is how a server-rendered app
+takes on Vue one widget at a time, without a rewrite into a single-page app, Inertia or Livewire. The component's
+JSON routes sit behind the same session login, so no API token reaches the browser. [`app.ts`](resources/js/app.ts)
+validates the props the page hands over, and CI runs the component's type check and tests beside the PHP ones.
+
 ## Production and checks
 
-`docker/php/Dockerfile` builds the dev image and, from one build, two production images: `production` (php-fpm or
-either worker, no dev packages, code read-only except `storage` and `bootstrap/cache`) and `web` (nginx with
-`public/`). A deployment runs the migrations once per release, since the containers don't on start, shares
-`storage/app` between php-fpm and the importer, and gives workers a stop grace period above their job timeout
+`docker/php/Dockerfile` builds the dev image, a Node stage for the assets and, from one build, two production images:
+`production` (php-fpm or either worker, no dev packages, code read-only except `storage` and `bootstrap/cache`) and
+`web` (nginx with `public/`). A deployment runs the migrations once per release, since the containers don't on start,
+shares `storage/app` between php-fpm and the importer, and gives workers a stop grace period above their job timeout
 (330 s for the importer), where orchestrators often default to 30 s.
 
-`make check` is the CI gate: Pint, Larastan level 10 and Pest against real MySQL and Kafka. Architecture tests hold
-the import's single entry point and the consumer's boundary. Broker tests run against real Kafka: one key stays on
-one partition in order and lands where the Java client puts it, a group splits the partitions, a duplicate is
-recorded once, and an unreadable message stops the consumer without committing past it. The deadlock guard is not
-tested. CI also builds both production images and serves `/up` through them.
+`make check` is the CI gate: Pint, Larastan level 10, Pest against real MySQL and Kafka, and the component's type
+check, ESLint and Vitest tests (`make js`, run in a Node container). Architecture tests hold the import's single entry point
+and the consumer's boundary. Broker tests run against real Kafka: one key stays on one partition in order and lands
+where the Java client puts it, a group splits the partitions, a duplicate is recorded once, and an unreadable message
+stops the consumer without committing past it. The deadlock guard is not tested. CI also builds both production
+images and serves `/up` through them.
 
 ## Limits
 
