@@ -25,6 +25,17 @@ it('rejects a wrong password and keeps the e-mail', function (): void {
     $this->assertGuest();
 });
 
+it('shows each login error under its input and links the two', function (): void {
+    $this->withViewErrors(['email' => 'These credentials do not match our records.', 'password' => 'The password field is required.'])
+        ->view('auth.login')
+        ->assertSeeInOrder([
+            'aria-invalid="true" aria-describedby="email-error"',
+            'aria-invalid="true" aria-describedby="password-error"',
+            'id="email-error">These credentials do not match our records.',
+            'id="password-error">The password field is required.',
+        ], false);
+});
+
 it('logs in and redirects to the partners page', function (): void {
     $user = User::factory()->create(['password' => 'password']);
 
