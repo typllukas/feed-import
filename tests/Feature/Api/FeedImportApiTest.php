@@ -41,14 +41,15 @@ it('rejects an upload without a file', function (): void {
         ->assertJsonValidationErrors(['file']);
 });
 
-it('rejects an upload that is not a csv file or is over 10 MB', function (UploadedFile $feedFile, string $message): void {
+it('rejects an upload that is not a feed or is over 10 MB', function (UploadedFile $feedFile, string $message): void {
     $partner = Partner::factory()->create();
 
     $this->postJson("/api/partners/{$partner->id}/feed-imports", ['file' => $feedFile])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['file' => $message]);
 })->with([
-    'a pdf' => [fn (): UploadedFile => UploadedFile::fake()->create('feed.pdf', 10, 'application/pdf'), 'The file field must be a file of type: csv, txt.'],
+    'a pdf' => [fn (): UploadedFile => UploadedFile::fake()->createWithContent('feed.pdf', "%PDF-1.7\n%binary\n"), 'Expected the header sku;name;price;currency;stock, got %PDF-1.7.'],
+    'an empty file' => [fn (): UploadedFile => UploadedFile::fake()->createWithContent('acme.csv', ''), 'Expected the header sku;name;price;currency;stock, got an empty first line.'],
     'over 10 MB' => [fn (): UploadedFile => UploadedFile::fake()->create('acme.csv', 10241, 'text/csv'), 'The file field must not be greater than 10240 kilobytes.'],
 ]);
 
