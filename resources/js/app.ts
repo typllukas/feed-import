@@ -13,3 +13,9 @@ document.querySelectorAll<HTMLElement>('[data-feed-import-result]').forEach((ele
     const mountProps = MountPropsSchema.parse(JSON.parse(element.dataset.props ?? '')) satisfies InstanceType<typeof FeedImportResult>['$props'];
     createApp(FeedImportResult, mountProps).mount(element);
 });
+
+document.querySelectorAll<HTMLInputElement>('input[data-sample-feed]').forEach((feedInput): void => {
+    const sampleFeedTransfer = new DataTransfer();
+    sampleFeedTransfer.items.add(new File([feedInput.dataset.sampleFeed ?? ''], 'sample-feed.csv', { type: 'text/csv' }));
+    feedInput.files = sampleFeedTransfer.files;
+});

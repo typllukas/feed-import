@@ -1,5 +1,8 @@
 <x-layout title="Partners">
     <h1>Partners</h1>
+    @env('local')
+        <p class="muted">Open an import to see its rejected rows, or Upload feed to watch a new one finish.</p>
+    @endenv
     @if ($partners->isEmpty())
         <p class="muted">No partners yet. Run <code>make demo</code>.</p>
     @else
@@ -14,7 +17,7 @@
             <tbody>
             @foreach ($partners as $partner)
                 <tr>
-                    <td><span class="partner-name">{{ $partner->name }}</span><br><span class="muted">{{ $partner->code }}</span></td>
+                    <td><span class="partner-name">{{ $partner->name }}</span><br><span class="muted">{{ $partner->code }}</span><br><a href="{{ route('partners.feed-imports.create', $partner) }}">Upload feed</a></td>
                     <td class="number">{{ $partner->products_count }}</td>
                     <td>
                         <div class="recent-imports">

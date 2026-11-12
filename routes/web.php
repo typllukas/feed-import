@@ -15,5 +15,5 @@ Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:5
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
 Route::get('/partners', [PartnerPageController::class, 'index'])->name('partners.index');
-Route::get('/feed-imports/{feedImport}', [FeedImportPageController::class, 'show'])->name('feed-imports.show');
+Route::resource('partners.feed-imports', FeedImportPageController::class)->shallow()->only(['create', 'store', 'show']);
 Route::resource('feed-imports.rejected-rows', RejectedRowController::class)->only(['index']);

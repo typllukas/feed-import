@@ -1,5 +1,5 @@
 <x-layout title="Log in">
-    <form class="login" method="post" action="{{ route('login.store') }}">
+    <form class="form-panel login" method="post" action="{{ route('login.store') }}">
         @csrf
         <h1>Log in</h1>
         @env('local')

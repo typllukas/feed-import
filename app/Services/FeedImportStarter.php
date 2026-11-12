@@ -16,7 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The one place that queues ImportFeed, for the API upload and the artisan command; ImportEntryPointTest keeps it so.
+ * The one place that queues ImportFeed; ImportEntryPointTest keeps it so.
  */
 final readonly class FeedImportStarter
 {
