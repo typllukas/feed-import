@@ -3,19 +3,20 @@ export HOST_GID := $(shell id -g)
 
 DC = docker compose
 PHP = $(DC) exec -T php
+NODE = $(DC) run --rm node
 ARTISAN = $(PHP) php artisan
 WORKERS = importer publisher
 KAFKA_GROUPS = $(DC) exec -T kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092
 
 .DEFAULT_GOAL := help
-.PHONY: help setup up down logs shell check pint pint-fix phpstan test image migrate seed reset worker import consume demo demo-change history scale topics consume-group
+.PHONY: help setup assets up down logs shell check pint pint-fix phpstan test js image migrate seed reset worker import consume demo demo-change history scale topics consume-group
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 ## --- environment ---
 
-setup: ## Fresh clone: .env, the PHP image, dependencies, the app key, the Kafka topics, both databases with the demo data. Drops any data already there
+setup: ## Fresh clone: .env, the PHP image, dependencies, the app key, the Kafka topics, both databases with the demo data, the built assets. Drops any data already there
 	test -f .env || cp .env.example .env
 	$(DC) build
 	@# the workers need vendor/, the key and the jobs table, so they start with the rest once all three exist
@@ -26,9 +27,18 @@ setup: ## Fresh clone: .env, the PHP image, dependencies, the app key, the Kafka
 	@$(MAKE) --no-print-directory reset
 	@$(MAKE) --no-print-directory up
 
-up: ## Start the containers of a set-up clone and wait until they are healthy
+up: assets ## Start the containers of a set-up clone and wait until they are healthy
 	$(DC) up -d --wait
 	@$(DC) ps --format '{{.Service}}\t{{.Status}}'
+
+assets: public/build/manifest.json ## Build the stylesheet and the Vue component into public/build when a source changed
+
+node_modules/.package-lock.json: package-lock.json
+	$(NODE) npm ci
+
+ASSET_SOURCES := $(shell find resources/css resources/js -type f ! -name '*.test.ts' ! -name 'test-setup.ts' 2>/dev/null)
+public/build/manifest.json: node_modules/.package-lock.json vite.config.ts $(ASSET_SOURCES)
+	$(NODE) npm run build
 
 topics: ## Create the Kafka topics with three partitions
 	$(DC) exec -T kafka sh -s < docker/kafka/create-topics.sh
@@ -44,7 +54,7 @@ shell: ## Shell in the php container
 
 ## --- quality ---
 
-check: pint phpstan test ## The whole check: style, static analysis, tests
+check: pint phpstan test js ## The whole check: style, static analysis, tests, the Vue component
 
 pint: ## Check the coding style
 	$(PHP) vendor/bin/pint --test
@@ -57,6 +67,9 @@ phpstan: ## Static analysis (Larastan, level 10)
 
 test: ## Tests (Pest, against the feed_import_test database)
 	$(PHP) vendor/bin/pest
+
+js: node_modules/.package-lock.json ## Type check, lint and test the Vue component
+	$(NODE) sh -c 'npm run types:check && npm run lint && npm test'
 
 image: ## Build the production images, feed-import:production (php-fpm and the workers) and feed-import-web:production
 	docker build --file docker/php/Dockerfile --target production --tag feed-import:production .
@@ -97,7 +110,7 @@ consume-group: ## Two consumers in one group; the first stops after 10 s and the
 	test $$firstStatus -eq 0 && test $$secondStatus -eq 0
 
 demo: ## Drop all data, seed, import the sample feed, work the queue, consume the stream
-	@# running workers would crash on the tables reset drops and race this queue:work; the trap starts them again
+	@# running workers would crash on the tables reset drops and race this queue:work
 	$(DC) stop $(WORKERS)
 	trap '$(DC) start $(WORKERS)' EXIT; \
 	$(MAKE) --no-print-directory reset && \

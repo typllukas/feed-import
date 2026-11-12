@@ -28,10 +28,20 @@ COPY --from=composer:2.9 /usr/bin/composer /usr/bin/composer
 # compose mounts the code
 FROM tools AS dev
 
+FROM node:26-alpine AS assets
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY vite.config.ts tsconfig.json ./
+COPY resources/css resources/css
+COPY resources/js resources/js
+RUN npm run build
+
 FROM tools AS production-build
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction --no-progress
 COPY . .
+COPY --from=assets /app/public/build public/build
 # storage/ is in .dockerignore; config:cache reads the environment, so it runs at container start
 RUN mkdir -p storage/app/private storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
     && composer dump-autoload --no-dev --classmap-authoritative --no-interaction \

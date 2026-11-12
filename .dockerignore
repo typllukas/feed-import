@@ -4,6 +4,10 @@
 !bootstrap
 !composer.json
 !composer.lock
+!package.json
+!package-lock.json
+!vite.config.ts
+!tsconfig.json
 !config
 !database
 !docker/nginx
@@ -14,3 +18,5 @@
 # discovered from the dev packages; the build discovers the production ones
 bootstrap/cache/*.php
 public/storage
+public/build
+public/hot

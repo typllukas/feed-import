@@ -52,6 +52,17 @@ services:
             php:
                 condition: service_healthy
 
+    node:
+        image: node:26-alpine
+        profiles: [tools]
+        user: '${HOST_UID:-1000}:${HOST_GID:-1000}'
+        working_dir: /app
+        # with a host UID other than the image's 1000, HOME is / and npm cannot write its cache there
+        environment:
+            npm_config_cache: /tmp/npm-cache
+        volumes:
+            - .:/app
+
     mysql:
         image: mysql:8.4
         restart: unless-stopped
