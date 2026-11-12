@@ -1,0 +1,27 @@
+{
+    "feedImport": {
+        "data": {
+            "status": "completed",
+            "total_row_count": 27,
+            "imported_row_count": 1,
+            "rejected_row_count": 26,
+            "started_at": "2026-11-11T10:00:00.000000Z",
+            "finished_at": "2026-11-11T10:00:02.000000Z",
+            "failure_reason": null
+        }
+    },
+    "rejectedRowPage": {
+        "data": [
+            {
+                "id": 901,
+                "line_number": 27,
+                "message": "The price field must be at least 0.",
+                "feed_line": "ACM-006;Tool 006;-12.90;CZK;42"
+            }
+        ],
+        "links": {
+            "prev": "http://localhost/feed-imports/12/rejected-rows?page=1",
+            "next": null
+        }
+    }
+}

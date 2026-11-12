@@ -23,6 +23,7 @@ final class RejectedRowResource extends JsonResource
             'line_number' => $this->line_number,
             'message' => $this->message,
             'row' => $this->row,
+            'feed_line' => $this->feed_line,
         ];
     }
 }

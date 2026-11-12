@@ -32,4 +32,6 @@ form.login .error { margin: 0; }
 form.login .hint { margin: 0; color: #6b7280; }
 .error { color: #991b1b; font-size: 0.9rem; }
 nav.pagination { display: flex; gap: 1rem; margin-top: 1rem; }
+nav.pagination button { padding: 0; font: inherit; color: #1d4ed8; background: none; border: 0; cursor: pointer; text-decoration: underline; }
+nav.pagination button[aria-disabled="true"] { color: #6b7280; cursor: default; text-decoration: none; }
 .status-superseded { background: #fef3c7; color: #92400e; }
