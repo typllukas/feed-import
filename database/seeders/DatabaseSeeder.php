@@ -6,7 +6,6 @@ namespace Database\Seeders;
 
 use App\Models\FeedImport;
 use App\Models\Partner;
-use App\Models\Product;
 use App\Models\RejectedRow;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -22,13 +21,10 @@ class DatabaseSeeder extends Seeder
         ]);
 
         Partner::factory()
-            ->has(Product::factory()->count(20))
             ->has(FeedImport::factory()->count(2)->has(RejectedRow::factory()->count(3)))
             ->has(FeedImport::factory()->failed())
             ->create(['name' => 'Acme Tools', 'code' => 'acme']);
 
-        Partner::factory()
-            ->has(Product::factory()->count(40))
-            ->create(['name' => 'Globex Parts', 'code' => 'globex']);
+        Partner::factory()->create(['name' => 'Globex Parts', 'code' => 'globex']);
     }
 }
