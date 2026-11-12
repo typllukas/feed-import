@@ -15,7 +15,7 @@ ARG GID=1000
 RUN groupadd --non-unique --gid "$GID" app \
     && useradd --non-unique --uid "$UID" --gid "$GID" --create-home app
 
-# above max:10240 in StoreFeedImportRequest, PHP's 2M and 8M refuse the feed before the rule
+# above StoreFeedImportRequest::MAX_FEED_FILE_KILOBYTES, PHP's 2M and 8M refuse the feed before the rule
 RUN printf 'upload_max_filesize = 11M\npost_max_size = 11M\n' > /usr/local/etc/php/conf.d/uploads.ini
 
 WORKDIR /app
