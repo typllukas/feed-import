@@ -18,7 +18,7 @@ final class StoreFeedImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['bail', 'required', 'file', 'mimes:csv,txt', 'max:10240', new FeedHeader],
+            'file' => ['bail', 'required', 'file', 'max:10240', new FeedHeader],
         ];
     }
 

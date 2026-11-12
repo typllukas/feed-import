@@ -24,7 +24,7 @@ final class FeedHeader implements ValidationRule
             return null;
         }
 
-        return Str::limit(sprintf('Expected the header %s, got %s.', implode(';', self::COLUMNS), $headerLine), 1000);
+        return Str::limit(sprintf('Expected the header %s, got %s.', implode(';', self::COLUMNS), $headerLine === '' ? 'an empty first line' : $headerLine), 1000);
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
